@@ -1,15 +1,16 @@
 package entity
 
 import (
+	"github.com/google/uuid"
 	"time"
 )
 
 // AuthCode представляет код авторизации OAuth
 type AuthCode struct {
-	ID            string    `json:"id" validate:"required,uuid"`
+	ID            uuid.UUID `json:"id" validate:"required,uuid"`
 	Code          string    `json:"code" validate:"required"`
-	UserID        string    `json:"user_id" validate:"required,uuid"`
-	ClientID      string    `json:"client_id" validate:"required"`
+	UserID        uuid.UUID `json:"user_id" validate:"required,uuid"`
+	ClientID      uuid.UUID `json:"client_id" validate:"required"`
 	RedirectURI   string    `json:"redirect_uri" validate:"required,url"`
 	Scopes        []string  `json:"scopes" validate:"required,dive,required"`
 	CodeChallenge string    `json:"code_challenge,omitempty" validate:"omitempty,min=43,max=128"`
@@ -32,4 +33,4 @@ func (ac *AuthCode) IsValid() bool {
 // MarkAsUsed помечает код авторизации как использованный
 func (ac *AuthCode) MarkAsUsed() {
 	ac.Used = true
-} 
+}

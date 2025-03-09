@@ -3,6 +3,7 @@ package valueobject
 import (
 	"encoding/json"
 	"fmt"
+
 	"go.uber.org/zap"
 )
 
@@ -113,7 +114,7 @@ func (c *Credentials) UnmarshalJSON(data []byte) error {
 	log.Debug("unmarshaling credentials")
 
 	var raw struct {
-		Email       string `json:"email"`
+		Email        string `json:"email"`
 		PasswordHash string `json:"password_hash"`
 	}
 
@@ -141,4 +142,4 @@ func (c *Credentials) UnmarshalJSON(data []byte) error {
 	)
 
 	return nil
-} 
+}

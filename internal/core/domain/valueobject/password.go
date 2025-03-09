@@ -2,8 +2,12 @@ package valueobject
 
 import (
 	"fmt"
+	"strings"
 	"unicode"
+
 	"go.uber.org/zap"
+
+	"AuthAndOauth/internal/core/domain/service"
 )
 
 // PasswordPolicy определяет политику паролей
@@ -30,15 +34,15 @@ func DefaultPasswordPolicy() *PasswordPolicy {
 		RequireSpecial:    true,
 		MinSpecialChars:   1,
 		DisallowedChars:   []rune{' '},
-		DisallowedStrings: []string{"password", "123456", "qwerty"},
+		DisallowedStrings: []string{"password", "12345678", "qwerty123"},
 	}
 }
 
 // Password представляет пароль
 type Password struct {
-	hash     string
-	policy   *PasswordPolicy
-	hasher   *service.PasswordHasher
+	hash   string
+	policy *PasswordPolicy
+	hasher *service.PasswordHasher
 }
 
 // NewPassword создает новый Password
@@ -70,9 +74,9 @@ func NewPassword(plaintext string, policy *PasswordPolicy) (*Password, error) {
 	log.Debug("password created successfully")
 
 	return &Password{
-		hash:     hash,
-		policy:   policy,
-		hasher:   hasher,
+		hash:   hash,
+		policy: policy,
+		hasher: hasher,
 	}, nil
 }
 
@@ -80,9 +84,9 @@ func NewPassword(plaintext string, policy *PasswordPolicy) (*Password, error) {
 func NewPasswordFromHash(hash string) *Password {
 	log.Debug("creating password from hash")
 	return &Password{
-		hash:     hash,
-		policy:   DefaultPasswordPolicy(),
-		hasher:   service.NewPasswordHasher(nil),
+		hash:   hash,
+		policy: DefaultPasswordPolicy(),
+		hasher: service.NewPasswordHasher(nil),
 	}
 }
 
@@ -193,4 +197,4 @@ func validatePassword(password string, policy *PasswordPolicy) error {
 
 	log.Debug("password validation successful")
 	return nil
-} 
+}

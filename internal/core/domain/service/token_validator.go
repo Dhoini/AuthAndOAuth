@@ -1,12 +1,11 @@
 package service
 
 import (
+	"AuthAndOauth/internal/core/domain/entity"
 	"fmt"
+	"go.uber.org/zap"
 	"strings"
 	"time"
-	"go.uber.org/zap"
-
-	"auth-service/internal/core/domain/entity"
 )
 
 // TokenValidator сервис для валидации токенов
@@ -208,4 +207,4 @@ func (v *TokenValidator) ValidateSession(session *entity.Session) error {
 		zap.String("session_id", session.ID.String()),
 	)
 	return nil
-} 
+}

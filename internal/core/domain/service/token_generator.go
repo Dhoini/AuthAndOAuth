@@ -1,12 +1,12 @@
 package service
 
 import (
+	"AuthAndOauth/internal/core/domain/entity"
 	"crypto/rand"
 	"encoding/base64"
-	"time"
 	"go.uber.org/zap"
+	"time"
 
-	"auth-service/internal/core/domain/entity"
 	"github.com/google/uuid"
 )
 
@@ -14,7 +14,7 @@ import (
 type TokenConfig struct {
 	AccessTokenDuration  time.Duration
 	RefreshTokenDuration time.Duration
-	TokenLength         int
+	TokenLength          int
 }
 
 // DefaultTokenConfig возвращает конфигурацию по умолчанию
@@ -22,7 +22,7 @@ func DefaultTokenConfig() *TokenConfig {
 	return &TokenConfig{
 		AccessTokenDuration:  time.Hour,
 		RefreshTokenDuration: time.Hour * 24 * 7, // 7 дней
-		TokenLength:         32,
+		TokenLength:          32,
 	}
 }
 
@@ -179,4 +179,4 @@ func (g *TokenGenerator) generateRandomString(length int) (string, error) {
 	)
 
 	return randomString, nil
-} 
+}

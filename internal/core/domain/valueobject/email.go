@@ -1,21 +1,13 @@
 package valueobject
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/mail"
 	"strings"
+
 	"go.uber.org/zap"
 )
-
-var log *zap.Logger
-
-func init() {
-	var err error
-	log, err = zap.NewDevelopment()
-	if err != nil {
-		panic(err)
-	}
-}
 
 // Email представляет email адрес
 type Email struct {
@@ -90,4 +82,4 @@ func (e *Email) UnmarshalJSON(data []byte) error {
 
 	*e = *email
 	return nil
-} 
+}

@@ -1,10 +1,9 @@
 package service
 
 import (
+	"AuthAndOauth/internal/core/domain/entity"
 	"fmt"
 	"go.uber.org/zap"
-
-	"auth-service/internal/core/domain/entity"
 )
 
 // PermissionChecker сервис для проверки прав доступа
@@ -174,4 +173,4 @@ func (pc *PermissionChecker) HasRole(user *entity.User, roleName string) bool {
 		zap.String("role_name", roleName),
 	)
 	return false
-} 
+}

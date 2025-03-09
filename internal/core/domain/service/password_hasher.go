@@ -5,8 +5,9 @@ import (
 	"crypto/subtle"
 	"encoding/base64"
 	"fmt"
-	"golang.org/x/crypto/argon2"
+
 	"go.uber.org/zap"
+	"golang.org/x/crypto/argon2"
 )
 
 // PasswordHasherConfig конфигурация для хеширования паролей
@@ -21,7 +22,7 @@ type PasswordHasherConfig struct {
 // DefaultConfig возвращает конфигурацию по умолчанию
 func DefaultConfig() *PasswordHasherConfig {
 	return &PasswordHasherConfig{
-		Memory:      64 * 1024,
+		Memory:      64 * 1024, // 64MB
 		Iterations:  3,
 		Parallelism: 2,
 		SaltLength:  16,
@@ -32,6 +33,7 @@ func DefaultConfig() *PasswordHasherConfig {
 // PasswordHasher сервис для хеширования паролей
 type PasswordHasher struct {
 	config *PasswordHasherConfig
+	logger *zap.Logger
 }
 
 // NewPasswordHasher создает новый экземпляр PasswordHasher
@@ -39,12 +41,21 @@ func NewPasswordHasher(config *PasswordHasherConfig) *PasswordHasher {
 	if config == nil {
 		config = DefaultConfig()
 	}
-	return &PasswordHasher{config: config}
+
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		panic(err)
+	}
+
+	return &PasswordHasher{
+		config: config,
+		logger: logger,
+	}
 }
 
 // HashPassword хеширует пароль используя Argon2id
 func (h *PasswordHasher) HashPassword(password string) (string, error) {
-	log.Debug("starting password hashing",
+	h.logger.Debug("hashing password",
 		zap.Uint32("memory", h.config.Memory),
 		zap.Uint32("iterations", h.config.Iterations),
 		zap.Uint8("parallelism", h.config.Parallelism),
@@ -52,9 +63,7 @@ func (h *PasswordHasher) HashPassword(password string) (string, error) {
 
 	salt := make([]byte, h.config.SaltLength)
 	if _, err := rand.Read(salt); err != nil {
-		log.Error("failed to generate salt",
-			zap.Error(err),
-		)
+		h.logger.Error("failed to generate salt", zap.Error(err))
 		return "", fmt.Errorf("generate salt: %w", err)
 	}
 
@@ -77,27 +86,19 @@ func (h *PasswordHasher) HashPassword(password string) (string, error) {
 		base64.RawStdEncoding.EncodeToString(hash),
 	)
 
-	log.Debug("password hashed successfully")
+	h.logger.Debug("password hashed successfully")
 	return encodedHash, nil
 }
 
 // VerifyPassword проверяет соответствие пароля хешу
 func (h *PasswordHasher) VerifyPassword(password, encodedHash string) (bool, error) {
-	log.Debug("starting password verification")
+	h.logger.Debug("verifying password")
 
 	params, salt, hash, err := h.decodeHash(encodedHash)
 	if err != nil {
-		log.Error("failed to decode hash",
-			zap.Error(err),
-		)
+		h.logger.Error("failed to decode hash", zap.Error(err))
 		return false, fmt.Errorf("decode hash: %w", err)
 	}
-
-	log.Debug("decoded hash parameters",
-		zap.Uint32("memory", params.Memory),
-		zap.Uint32("iterations", params.Iterations),
-		zap.Uint8("parallelism", params.Parallelism),
-	)
 
 	otherHash := argon2.IDKey(
 		[]byte(password),
@@ -109,16 +110,14 @@ func (h *PasswordHasher) VerifyPassword(password, encodedHash string) (bool, err
 	)
 
 	match := subtle.ConstantTimeCompare(hash, otherHash) == 1
-	log.Debug("password verification completed",
-		zap.Bool("match", match),
-	)
+	h.logger.Debug("password verification completed", zap.Bool("match", match))
 
 	return match, nil
 }
 
 // decodeHash декодирует хеш в параметры, соль и хеш
 func (h *PasswordHasher) decodeHash(encodedHash string) (*PasswordHasherConfig, []byte, []byte, error) {
-	log.Debug("starting hash decoding")
+	h.logger.Debug("decoding hash")
 
 	var version int
 	var memory uint32
@@ -128,9 +127,7 @@ func (h *PasswordHasher) decodeHash(encodedHash string) (*PasswordHasherConfig, 
 	_, err := fmt.Sscanf(encodedHash, "$argon2id$v=%d$m=%d,t=%d,p=%d$",
 		&version, &memory, &iterations, &parallelism)
 	if err != nil {
-		log.Error("invalid hash format",
-			zap.Error(err),
-		)
+		h.logger.Error("invalid hash format", zap.Error(err))
 		return nil, nil, nil, fmt.Errorf("invalid hash format: %w", err)
 	}
 
@@ -142,17 +139,13 @@ func (h *PasswordHasher) decodeHash(encodedHash string) (*PasswordHasherConfig, 
 
 	salt, err := base64.RawStdEncoding.DecodeString(parts[3])
 	if err != nil {
-		log.Error("failed to decode salt",
-			zap.Error(err),
-		)
+		h.logger.Error("failed to decode salt", zap.Error(err))
 		return nil, nil, nil, fmt.Errorf("decode salt: %w", err)
 	}
 
 	hash, err := base64.RawStdEncoding.DecodeString(parts[4])
 	if err != nil {
-		log.Error("failed to decode hash",
-			zap.Error(err),
-		)
+		h.logger.Error("failed to decode hash", zap.Error(err))
 		return nil, nil, nil, fmt.Errorf("decode hash: %w", err)
 	}
 
@@ -164,7 +157,7 @@ func (h *PasswordHasher) decodeHash(encodedHash string) (*PasswordHasherConfig, 
 		KeyLength:   uint32(len(hash)),
 	}
 
-	log.Debug("hash decoded successfully",
+	h.logger.Debug("hash decoded successfully",
 		zap.Int("version", version),
 		zap.Uint32("memory", memory),
 		zap.Uint32("iterations", iterations),
@@ -172,4 +165,4 @@ func (h *PasswordHasher) decodeHash(encodedHash string) (*PasswordHasherConfig, 
 	)
 
 	return params, salt, hash, nil
-} 
+}
