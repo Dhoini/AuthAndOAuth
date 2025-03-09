@@ -1,0 +1,125 @@
+version: '3.9'
+
+services:
+  # Микросервис авторизации и аутентификации
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - CONFIG_PATH=configs/dev.yaml
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_password
+      - POSTGRES_DB=auth_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=kafka:9092
+      - JAEGER_HOST=jaeger:6831
+      - PROMETHEUS_PORT=9090
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - jaeger
+    networks:
+      - auth-network
+    volumes:
+      - ./configs:/root/configs
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16.8
+    environment:
+      - POSTGRES_USER=auth_user
+      - POSTGRES_PASSWORD=auth_password
+      - POSTGRES_DB=auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - auth-network
+
+  # Redis
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - auth-network
+
+  # Zookeeper (для Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      - ZOOKEEPER_CLIENT_PORT=2181
+      - ZOOKEEPER_TICK_TIME=2000
+    ports:
+      - "2181:2181"
+    networks:
+      - auth-network
+
+  # Kafka
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+    networks:
+      - auth-network
+
+  # Prometheus для мониторинга
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - auth-network
+
+  # Grafana для визуализации
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    networks:
+      - auth-network
+
+  # Jaeger для трассировки
+  jaeger:
+    image: jaegertracing/all-in-one:1.47
+    ports:
+      - "6831:6831/udp"
+      - "16686:16686"
+    environment:
+      - COLLECTOR_ZIPKIN_HOST_PORT=:9411
+    networks:
+      - auth-network
+
+# Сети
+networks:
+  auth-network:
+    driver: bridge
+
+# Тома
+volumes:
+  postgres-data:
+  redis-data:
